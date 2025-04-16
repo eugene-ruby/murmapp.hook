@@ -180,38 +180,24 @@ To enable CI deployment, set the following secrets in **GitHub → Settings → 
 
 | Secret Name       | Description                                |
 |-------------------|--------------------------------------------|
-| `HARBOR_USERNAME` | Harbor robot username                      |
-| `HARBOR_PASSWORD` | Harbor robot password                      |
 | `SSH_HOST`        | IP or hostname of your production server   |
 | `SSH_USER`        | SSH user used for deployment               |
 | `SSH_KEY`         | SSH private RSA key (single-line format)   |
 | `SECRET_SALT`     | Secret salt used for webhook verification  |
 | `RABBITMQ_URL`    | RabbitMQ connection string (AMQP URL)      |
+| `WEB_HOOK_HOST`   | The domain with ssl to which Telegram will send webhooks        |
 
 
 Example:
 
 ```env
+WEB_HOOK_HOST=https://domain.com
 SECRET_SALT=supersecret
 RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
 ```
 
-
 ---
 
-### 🐳 Build & Push Docker Image Manually
-
-The image is built and pushed **locally** to your private Harbor registry.
-
-```bash
-docker build -f Dockerfile -t harbor.infra.vocabapp.ru/murmapp/murmapp.hook:latest .
-
-echo "$HARBOR_PASSWORD" | docker login harbor.infra.vocabapp.ru -u "$HARBOR_USERNAME" --password-stdin
-
-docker push harbor.infra.vocabapp.ru/murmapp/murmapp.hook:latest
-```
-
----
 
 ### 🚀 Trigger Deployment
 
