@@ -1,0 +1,46 @@
+name: Deploy murmapp.hook
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+      HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_KEY: ${{ secrets.SSH_KEY }}
+      SECRET_SALT: ${{ secrets.SECRET_SALT }}
+      RABBITMQ_URL: ${{ secrets.RABBITMQ_URL }}
+
+    steps:
+      - name: Deploy to production server via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USER }}
+          key: ${{ env.SSH_KEY }}
+          envs: HARBOR_USERNAME,HARBOR_PASSWORD,SECRET_SALT,RABBITMQ_URL
+          script: |
+            cd ~/murmapp/murmapp.hook
+
+            echo "SECRET_SALT=$SECRET_SALT" > .env
+            echo "RABBITMQ_URL=$RABBITMQ_URL" >> .env
+
+            echo "$HARBOR_PASSWORD" | docker login harbor.in.vocabapp.ru -u "$HARBOR_USERNAME" --password-stdin
+
+            docker pull harbor.in.vocabapp.ru/murmapp/murmapp.hook:latest
+
+            docker stop murmapp_hook || true
+            docker rm murmapp_hook || true
+
+            docker run -d \
+              --name murmapp_hook \
+              --env-file .env \
+              -p 8550:8080 \
+              harbor.in.vocabapp.ru/murmapp/murmapp.hook:latest
