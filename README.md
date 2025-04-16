@@ -184,6 +184,7 @@ To enable CI deployment, set the following secrets in **GitHub → Settings → 
 | `SSH_USER`        | SSH user used for deployment               |
 | `SSH_KEY`         | SSH private RSA key (single-line format)   |
 | `SECRET_SALT`     | Secret salt used for webhook verification  |
+| `APP_PORT`        | Default application port: 8080 (optional). |
 | `RABBITMQ_URL`    | RabbitMQ connection string (AMQP URL)      |
 | `WEB_HOOK_HOST`   | The domain with ssl to which Telegram will send webhooks        |
 
@@ -191,6 +192,7 @@ To enable CI deployment, set the following secrets in **GitHub → Settings → 
 Example:
 
 ```env
+APP_PORT=8888 # default 8080
 WEB_HOOK_HOST=https://domain.com
 SECRET_SALT=supersecret
 RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
