@@ -3,11 +3,10 @@ FROM golang:1.22-alpine AS builder
 WORKDIR /app
 COPY . .
 
-# Скачиваем зависимости и собираем бинарь
 RUN go mod download
 RUN go build -o app ./cmd/main.go
 
-# Финальный образ — только бинарник
+# Compile the application binary
 FROM alpine:latest
 
 WORKDIR /app

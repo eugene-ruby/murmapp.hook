@@ -204,11 +204,11 @@ RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
 The image is built and pushed **locally** to your private Harbor registry.
 
 ```bash
-docker build -f Dockerfile -t harbor.in.vocabapp.ru/murmapp/murmapp.hook:latest .
+docker build -f Dockerfile -t harbor.infra.vocabapp.ru/murmapp/murmapp.hook:latest .
 
-echo "$HARBOR_PASSWORD" | docker login harbor.in.vocabapp.ru -u "$HARBOR_USERNAME" --password-stdin
+echo "$HARBOR_PASSWORD" | docker login harbor.infra.vocabapp.ru -u "$HARBOR_USERNAME" --password-stdin
 
-docker push harbor.in.vocabapp.ru/murmapp/murmapp.hook:latest
+docker push harbor.infra.vocabapp.ru/murmapp/murmapp.hook:latest
 ```
 
 ---
