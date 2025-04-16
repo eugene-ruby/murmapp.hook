@@ -16,6 +16,7 @@ jobs:
       SECRET_SALT: ${{ secrets.SECRET_SALT }}
       RABBITMQ_URL: ${{ secrets.RABBITMQ_URL }}
       WEB_HOOK_HOST: ${{ secrets.WEB_HOOK_HOST }}
+      APP_PORT: ${{ secrets.APP_PORT }}
 
     steps:
       - name: Checkout
@@ -39,12 +40,13 @@ jobs:
           host: ${{ env.SSH_HOST }}
           username: ${{ env.SSH_USER }}
           key: ${{ env.SSH_KEY }}
-          envs: SECRET_SALT,RABBITMQ_URL, WEB_HOOK_HOST
+          envs: SECRET_SALT,RABBITMQ_URL, WEB_HOOK_HOST, APP_PORT
           script: |
             cd ~/murmapp/murmapp.hook
 
             echo "SECRET_SALT=$SECRET_SALT" > .env
             echo "RABBITMQ_URL=$RABBITMQ_URL" >> .env
             echo "WEB_HOOK_HOST=$WEB_HOOK_HOST" >> .env
+            echo "APP_PORT=$APP_PORT" >> .env
 
             sudo systemctl restart murmapp-hook.service
