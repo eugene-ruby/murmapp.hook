@@ -49,7 +49,7 @@ func TestHandleWebhook_ValidToken(t *testing.T) {
 
 	assert.Equal(t, 200, w.Result().StatusCode)
 	assert.True(t, mock.Published)
-	assert.Equal(t, "telegram.raw", mock.LastKey)
+	assert.Equal(t, "telegram.messages.in", mock.LastKey)
 }
 
 func TestHandleWebhook_InvalidToken(t *testing.T) {

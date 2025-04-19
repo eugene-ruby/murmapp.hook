@@ -9,19 +9,18 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"github.com/streadway/amqp"
 	hookpb "murmapp.hook/proto"
 )
 
 func StartRegistrationConsumer(ch *amqp.Channel) error {
-	q, err := ch.QueueDeclare("hook_registrations", true, false, false, false, nil)
+	q, err := ch.QueueDeclare("murmapp.hook.webhook.registration", true, false, false, false, nil)
 	if err != nil {
 		return err
 	}
 
-	// Привязываем к topic exchange с routing_key "registration"
-	if err := ch.QueueBind(q.Name, "registration", "murmapp.registrations", false, nil); err != nil {
+	if err := ch.QueueBind(q.Name, "webhook.registration", "murmapp", false, nil); err != nil {
 		return err
 	}
 
@@ -60,7 +59,7 @@ func StartRegistrationConsumer(ch *amqp.Channel) error {
 				continue
 			}
 
-			err = ch.Publish("murmapp.registrations", "registered", false, false, amqp.Publishing{
+			err = ch.Publish("murmapp", "webhook.registered", false, false, amqp.Publishing{
 				ContentType: "application/protobuf",
 				Body:        body,
 			})

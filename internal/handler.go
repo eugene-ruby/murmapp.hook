@@ -49,7 +49,7 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request, mq Publisher) {
 		return
 	}
 
-	if err := mq.Publish("murmapp.messages.in", "telegram.raw", msg); err != nil {
+	if err := mq.Publish("murmapp", "telegram.messages.in", msg); err != nil {
 		log.Printf("[hook] ❌ failed to publish to MQ: %v", err)
 		http.Error(w, "mq error", http.StatusInternalServerError)
 		return
