@@ -28,11 +28,11 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request, mq Publisher) {
 	expectedID := ComputeWebhookID(token, os.Getenv("SECRET_SALT"))
 	valid := (expectedID == webhookID)
 
-	log.Printf("[hook] 🚨 incoming from IP=%s | webhook_id=%s | token_len=%d | valid=%v", ip, webhookID, len(token), valid)
+	log.Printf("[hook] 📩 incoming from IP=%s | webhook_id=%s | token_len=%d | valid=%v", ip, webhookID, len(token), valid)
 
 	if !valid {
 		http.Error(w, "forbidden", http.StatusForbidden)
-		log.Printf("[hook] ❌ token mismatch for IP=%s, rejecting request", ip)
+		log.Printf("[hook] 🚨 token mismatch for IP=%s, rejecting request", ip)
 		return
 	}
 
