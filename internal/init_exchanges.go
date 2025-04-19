@@ -7,15 +7,11 @@ import (
 
 // InitExchanges declares all topic exchanges used by the system
 func InitExchanges(ch *amqp.Channel) error {
-	exchanges := []string{
-		"murmapp.messages.in",
-		"murmapp.messages.out",
-		"murmapp.registrations",
-	}
+    // declare the exchange (just in case)
+    exchange := "murmapp"
 
-	for _, ex := range exchanges {
-		err := ch.ExchangeDeclare(
-			ex,
+	err := ch.ExchangeDeclare(
+			exchange,
 			"topic", // exchange type
 			true,    // durable
 			false,   // auto-deleted
@@ -24,11 +20,10 @@ func InitExchanges(ch *amqp.Channel) error {
 			nil,     // arguments
 		)
 		if err != nil {
-			log.Printf("failed to declare exchange %s: %v", ex, err)
+			log.Printf("failed to declare exchange %s: %v", exchange, err)
 			return err
 		}
-		log.Printf("exchange declared: %s", ex)
-	}
+		log.Printf("exchange declared: %s", exchange)
 
 	return nil
 }
