@@ -55,16 +55,16 @@ func FilterPayload(raw []byte) (redacted []byte, ok bool, reason string) {
 		return nil, false, "invalid JSON"
 	}
 
-	missing := []string{}
+	matched := 0
 	for _, path := range privacyKeys {
 		parts := strings.Split(path, ".")
-		if !applyPrivacyRule(obj, parts) {
-			missing = append(missing, path)
+		if applyPrivacyRule(obj, parts) {
+			matched++
 		}
 	}
 
-	if len(missing) > 0 {
-		return raw, false, fmt.Sprintf("missing keys: %v", missing)
+	if matched == 0 {
+		return raw, false, "no privacy keys matched"
 	}
 
 	result, err := json.Marshal(obj)

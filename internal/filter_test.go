@@ -48,38 +48,27 @@ func TestFilterPayload_FullMatch(t *testing.T) {
 	}
 }
 
-func LoadPrivacyKeysFromAbsolutePath(path string) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	lines := strings.Split(string(data), "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line != "" && !strings.HasPrefix(line, "#") {
-			privacyKeys = append(privacyKeys, line)
-		}
-	}
-	return nil
-}
-
 func TestFilterPayload_MissingKey(t *testing.T) {
-	os.Setenv("SECRET_SALT", "test_salt")
-	os.Setenv("TELEGRAM_ID_ENCRYPTION_KEY", "01234567890123456789012345678901")
-	privacyKeys = []string{"message.from.id", "message.chat.id", "message.missing_field"}
-
 	raw := []byte(`{
 		"message": {
-			"from": {"id": 123},
-			"chat": {"id": 456}
+			"from": {"uuid": 123},
+			"chat": {"uuid": 456}
 		}
 	}`)
 
 	_, ok, reason := FilterPayload(raw)
 	if ok {
-		t.Errorf("expected payload to be rejected due to missing field")
+		t.Errorf("expected payload to be rejected due to no matched keys")
 	}
-	if !strings.Contains(reason, "missing") {
-		t.Errorf("expected reason to mention missing key, got: %s", reason)
+	if !strings.Contains(reason, "no privacy keys matched") {
+		t.Errorf("expected reason to mention unmatched keys, got: %s", reason)
+	}
+}
+
+func TestFilterPayload_InvalidJSON(t *testing.T) {
+	badJSON := []byte(`{ this is not valid JSON }`)
+	_, ok, reason := FilterPayload(badJSON)
+	if ok || !strings.Contains(reason, "invalid JSON") {
+		t.Errorf("expected invalid JSON error, got: %s", reason)
 	}
 }
