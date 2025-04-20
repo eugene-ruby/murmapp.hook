@@ -1,27 +1,19 @@
 package internal
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"strings"
-
-	_ "embed"
 )
+import _ "embed"
 
 //go:embed config/privacy_keys.conf
 var EmbeddedPrivacyKeys string
 
 var (
-	privacyKeys       []string
-	secretSalt        string
-	encryptionKey     []byte // for telegram_id
-	textEncryptionKey []byte // for message text
+	privacyKeys   []string
+	secretSalt    string
 )
 
 // LoadPrivacyKeys reads keys from embedded file and initializes encryption config
@@ -38,23 +30,11 @@ func LoadPrivacyKeys() error {
 	if secretSalt == "" {
 		return fmt.Errorf("SECRET_SALT env var not set")
 	}
-
-	encKey := os.Getenv("TELEGRAM_ID_ENCRYPTION_KEY")
-	if encKey == "" || len(encKey) != 32 {
-		return fmt.Errorf("TELEGRAM_ID_ENCRYPTION_KEY must be 32 bytes")
-	}
-	encryptionKey = []byte(encKey)
-
-	textKey := os.Getenv("ENCRYPTION_KEY")
-	if textKey == "" || len(textKey) != 32 {
-		return fmt.Errorf("ENCRYPTION_KEY must be 32 bytes")
-	}
-	textEncryptionKey = []byte(textKey)
-
+	
 	return nil
 }
 
-// FilterPayload redacts sensitive data and encrypts IDs/text
+// FilterPayload redacts sensitive data and encrypts IDs
 func FilterPayload(raw []byte) (redacted []byte, ok bool, reason string) {
 	var obj map[string]interface{}
 	if err := json.Unmarshal(raw, &obj); err != nil {
@@ -68,11 +48,6 @@ func FilterPayload(raw []byte) (redacted []byte, ok bool, reason string) {
 			matched++
 		}
 	}
-
-	// encrypt all known text locations
-	encryptTextAtPath(obj, []string{"message", "text"})
-	encryptTextAtPath(obj, []string{"message", "reply_to_message", "text"})
-	encryptTextAtPath(obj, []string{"channel_post", "text"})
 
 	if matched == 0 {
 		return raw, false, "no privacy keys matched"
@@ -108,7 +83,7 @@ func applyPrivacyRule(root map[string]interface{}, path []string) bool {
 				default:
 					return false
 				}
-				encrypted, err := encryptWithKey(str, encryptionKey)
+				encrypted, err := EncryptWithKey(str, SecretEncryptionKey)
 				if err != nil {
 					return false
 				}
@@ -121,47 +96,4 @@ func applyPrivacyRule(root map[string]interface{}, path []string) bool {
 		current = val
 	}
 	return false
-}
-
-func encryptTextAtPath(root map[string]interface{}, path []string) {
-	var current interface{} = root
-	for i, key := range path {
-		m, ok := current.(map[string]interface{})
-		if !ok {
-			return
-		}
-		val, exists := m[key]
-		if !exists {
-			return
-		}
-		if i == len(path)-1 {
-			str, ok := val.(string)
-			if !ok || str == "" {
-				return
-			}
-			encrypted, err := encryptWithKey(str, textEncryptionKey)
-			if err == nil {
-				m[key] = encrypted
-			}
-			return
-		}
-		current = val
-	}
-}
-
-func encryptWithKey(plain string, key []byte) (string, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return "", err
-	}
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return "", err
-	}
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return "", err
-	}
-	ciphertext := gcm.Seal(nonce, nonce, []byte(plain), nil)
-	return base64.URLEncoding.EncodeToString(ciphertext), nil
 }

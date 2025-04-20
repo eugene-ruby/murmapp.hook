@@ -6,6 +6,6 @@ option go_package = "murmapp.hook/proto;hookpb";
 
 message TelegramWebhookPayload {
   string webhook_id = 1;
-  bytes raw_body = 2;
+  bytes encrypted_payload = 2;
   int64 received_at_unix = 3;
 }

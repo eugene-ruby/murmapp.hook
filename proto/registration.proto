@@ -6,7 +6,7 @@ option go_package = "murmapp.hook/proto;hookpb";
 
 message RegisterWebhookRequest {
   string bot_id = 1;
-  string api_key_bot = 2;
+  bytes api_key_bot = 2;
 }
 
 message RegisterWebhookResponse {

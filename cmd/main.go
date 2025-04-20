@@ -27,6 +27,10 @@ func main() {
 		log.Fatalf("Exchange init failed: %v", err)
 	}
 
+	if err := internal.InitEncryptionKey(); err != nil {
+		log.Fatalf("Encryption key init failed: %v", err)
+	}
+
 	r.Post("/api/webhook/{webhook_id}", func(w http.ResponseWriter, r *http.Request) {
 		internal.HandleWebhook(w, r, mq)
 	})

@@ -24,7 +24,7 @@ const (
 type RegisterWebhookRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BotId         string                 `protobuf:"bytes,1,opt,name=bot_id,json=botId,proto3" json:"bot_id,omitempty"`
-	ApiKeyBot     string                 `protobuf:"bytes,2,opt,name=api_key_bot,json=apiKeyBot,proto3" json:"api_key_bot,omitempty"`
+	ApiKeyBot     []byte                 `protobuf:"bytes,2,opt,name=api_key_bot,json=apiKeyBot,proto3" json:"api_key_bot,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -66,11 +66,11 @@ func (x *RegisterWebhookRequest) GetBotId() string {
 	return ""
 }
 
-func (x *RegisterWebhookRequest) GetApiKeyBot() string {
+func (x *RegisterWebhookRequest) GetApiKeyBot() []byte {
 	if x != nil {
 		return x.ApiKeyBot
 	}
-	return ""
+	return nil
 }
 
 type RegisterWebhookResponse struct {
@@ -132,7 +132,7 @@ const file_proto_registration_proto_rawDesc = "" +
 	"\x18proto/registration.proto\x12\x04hook\"O\n" +
 	"\x16RegisterWebhookRequest\x12\x15\n" +
 	"\x06bot_id\x18\x01 \x01(\tR\x05botId\x12\x1e\n" +
-	"\vapi_key_bot\x18\x02 \x01(\tR\tapiKeyBot\"O\n" +
+	"\vapi_key_bot\x18\x02 \x01(\fR\tapiKeyBot\"O\n" +
 	"\x17RegisterWebhookResponse\x12\x15\n" +
 	"\x06bot_id\x18\x01 \x01(\tR\x05botId\x12\x1d\n" +
 	"\n" +

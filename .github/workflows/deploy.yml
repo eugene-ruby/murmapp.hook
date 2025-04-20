@@ -14,6 +14,7 @@ jobs:
       SSH_HOST: ${{ secrets.SSH_HOST }}
       SSH_KEY: ${{ secrets.SSH_KEY }}
       SECRET_SALT: ${{ secrets.SECRET_SALT }}
+      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
       TELEGRAM_ID_ENCRYPTION_KEY: ${{ secrets.TELEGRAM_ID_ENCRYPTION_KEY }}
       RABBITMQ_URL: ${{ secrets.RABBITMQ_URL }}
       WEB_HOOK_HOST: ${{ secrets.WEB_HOOK_HOST }}
@@ -42,12 +43,13 @@ jobs:
           host: ${{ env.SSH_HOST }}
           username: ${{ env.SSH_USER }}
           key: ${{ env.SSH_KEY }}
-          envs: SECRET_SALT,RABBITMQ_URL,WEB_HOOK_HOST,APP_PORT,DEBUG,TELEGRAM_ID_ENCRYPTION_KEY
+          envs: SECRET_SALT,RABBITMQ_URL,WEB_HOOK_HOST,APP_PORT,DEBUG,TELEGRAM_ID_ENCRYPTION_KEY,ENCRYPTION_KEY
           script: |
             cd ~/murmapp/murmapp.hook
 
             cat <<EOF > .env
             SECRET_SALT=$SECRET_SALT
+            ENCRYPTION_KEY=$ENCRYPTION_KEY
             TELEGRAM_ID_ENCRYPTION_KEY=$TELEGRAM_ID_ENCRYPTION_KEY
             RABBITMQ_URL=$RABBITMQ_URL
             WEB_HOOK_HOST=$WEB_HOOK_HOST

@@ -12,67 +12,75 @@ import (
 	hookpb "murmapp.hook/proto"
 )
 
+
 func HandleWebhook(w http.ResponseWriter, r *http.Request, mq Publisher) {
-    webhookID := chi.URLParam(r, "webhook_id")
-    token := r.Header.Get("X-Telegram-Bot-Api-Secret-Token")
-    ip := r.RemoteAddr
+	webhookID := chi.URLParam(r, "webhook_id")
+	token := r.Header.Get("X-Telegram-Bot-Api-Secret-Token")
+	ip := r.RemoteAddr
 
-    raw, err := io.ReadAll(r.Body)
-    if err != nil {
-        http.Error(w, "can't read body", http.StatusBadRequest)
-        log.Printf("[hook] ❌ failed to read request body from %s: %v", ip, err)
-        return
-    }
-    defer r.Body.Close()
+	raw, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "can't read body", http.StatusBadRequest)
+		log.Printf("[hook] ❌ failed to read request body from %s: %v", ip, err)
+		return
+	}
+	defer r.Body.Close()
 
-    expectedID := ComputeWebhookID(token, os.Getenv("SECRET_SALT"))
-    valid := (expectedID == webhookID)
+	expectedID := ComputeWebhookID(token, os.Getenv("SECRET_SALT"))
+	valid := (expectedID == webhookID)
 
-    log.Printf("[hook] 📩 incoming from IP=%s | webhook_id=%s | token_len=%d | valid=%v", ip, webhookID, len(token), valid)
+	log.Printf("[hook] 📩 incoming from IP=%s | webhook_id=%s | token_len=%d | valid=%v", ip, webhookID, len(token), valid)
 
-    if !valid {
-        http.Error(w, "forbidden", http.StatusForbidden)
-        log.Printf("[hook] 🚨 token mismatch for IP=%s, rejecting request", ip)
-        return
-    }
+	if !valid {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		log.Printf("[hook] 🚨 token mismatch for IP=%s, rejecting request", ip)
+		return
+	}
 
-    redacted, ok, reason := FilterPayload(raw)
+	redacted, ok, reason := FilterPayload(raw)
 
-    if os.Getenv("DEBUG") == "true" {
-        log.Println("[DEBUG] --- incoming raw ---")
-        log.Println(string(raw))
-        log.Println("[DEBUG] --- redacted payload ---")
-        log.Println(string(redacted))
-        if !ok {
-            log.Printf("[DEBUG] --- dropped: %s ---", reason)
-        }
-    }
+	if os.Getenv("DEBUG") == "true" {
+		log.Println("[DEBUG] --- incoming raw ---")
+		log.Println(string(raw))
+		log.Println("[DEBUG] --- redacted payload ---")
+		log.Println(string(redacted))
+		if !ok {
+			log.Printf("[DEBUG] --- dropped: %s ---", reason)
+		}
+	}
 
-    if !ok {
-        log.Printf("[hook] ❌ dropped payload from %s: %s", ip, reason)
-        w.WriteHeader(http.StatusOK)
-        return
-    }
+	if !ok {
+		log.Printf("[hook] ❌ dropped payload from %s: %s", ip, reason)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 
-    payload := &hookpb.TelegramWebhookPayload{
-        WebhookId:      webhookID,
-        RawBody:        redacted,
-        ReceivedAtUnix: time.Now().Unix(),
-    }
+	encrypted, err := EncryptWithKeyBytes(redacted, PayloadEncryptionKey)
+	if err != nil {
+		log.Printf("[hook] ❌ encryption failed: %v", err)
+		http.Error(w, "encryption error", http.StatusInternalServerError)
+		return
+	}
 
-    msg, err := proto.Marshal(payload)
-    if err != nil {
-        log.Printf("[hook] ❌ failed to marshal payload: %v", err)
-        http.Error(w, "internal error", http.StatusInternalServerError)
-        return
-    }
+	payload := &hookpb.TelegramWebhookPayload{
+		WebhookId:        webhookID,
+		EncryptedPayload: encrypted,
+		ReceivedAtUnix:   time.Now().Unix(),
+	}
 
-    if err := mq.Publish("murmapp", "telegram.messages.in", msg); err != nil {
-        log.Printf("[hook] ❌ failed to publish to MQ: %v", err)
-        http.Error(w, "mq error", http.StatusInternalServerError)
-        return
-    }
+	msg, err := proto.Marshal(payload)
+	if err != nil {
+		log.Printf("[hook] ❌ failed to marshal payload: %v", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
 
-    log.Printf("[hook] ✅ accepted webhook from %s, forwarded to MQ", ip)
-    w.WriteHeader(http.StatusOK)
+	if err := mq.Publish("murmapp", "telegram.messages.in", msg); err != nil {
+		log.Printf("[hook] ❌ failed to publish to MQ: %v", err)
+		http.Error(w, "mq error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("[hook] ✅ accepted webhook from %s, forwarded to MQ", ip)
+	w.WriteHeader(http.StatusOK)
 }

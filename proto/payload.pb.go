@@ -22,12 +22,12 @@ const (
 )
 
 type TelegramWebhookPayload struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	WebhookId      string                 `protobuf:"bytes,1,opt,name=webhook_id,json=webhookId,proto3" json:"webhook_id,omitempty"`
-	RawBody        []byte                 `protobuf:"bytes,2,opt,name=raw_body,json=rawBody,proto3" json:"raw_body,omitempty"`
-	ReceivedAtUnix int64                  `protobuf:"varint,3,opt,name=received_at_unix,json=receivedAtUnix,proto3" json:"received_at_unix,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	WebhookId        string                 `protobuf:"bytes,1,opt,name=webhook_id,json=webhookId,proto3" json:"webhook_id,omitempty"`
+	EncryptedPayload []byte                 `protobuf:"bytes,2,opt,name=encrypted_payload,json=encryptedPayload,proto3" json:"encrypted_payload,omitempty"`
+	ReceivedAtUnix   int64                  `protobuf:"varint,3,opt,name=received_at_unix,json=receivedAtUnix,proto3" json:"received_at_unix,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *TelegramWebhookPayload) Reset() {
@@ -67,9 +67,9 @@ func (x *TelegramWebhookPayload) GetWebhookId() string {
 	return ""
 }
 
-func (x *TelegramWebhookPayload) GetRawBody() []byte {
+func (x *TelegramWebhookPayload) GetEncryptedPayload() []byte {
 	if x != nil {
-		return x.RawBody
+		return x.EncryptedPayload
 	}
 	return nil
 }
@@ -85,11 +85,11 @@ var File_proto_payload_proto protoreflect.FileDescriptor
 
 const file_proto_payload_proto_rawDesc = "" +
 	"\n" +
-	"\x13proto/payload.proto\x12\x04hook\"|\n" +
+	"\x13proto/payload.proto\x12\x04hook\"\x8e\x01\n" +
 	"\x16TelegramWebhookPayload\x12\x1d\n" +
 	"\n" +
-	"webhook_id\x18\x01 \x01(\tR\twebhookId\x12\x19\n" +
-	"\braw_body\x18\x02 \x01(\fR\arawBody\x12(\n" +
+	"webhook_id\x18\x01 \x01(\tR\twebhookId\x12+\n" +
+	"\x11encrypted_payload\x18\x02 \x01(\fR\x10encryptedPayload\x12(\n" +
 	"\x10received_at_unix\x18\x03 \x01(\x03R\x0ereceivedAtUnixB\x1bZ\x19murmapp.hook/proto;hookpbb\x06proto3"
 
 var (

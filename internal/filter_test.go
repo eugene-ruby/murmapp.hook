@@ -18,6 +18,7 @@ message.forward_origin.sender_user.id
 	_ = os.Setenv("SECRET_SALT", "test_salt")
 	_ = os.Setenv("TELEGRAM_ID_ENCRYPTION_KEY", "01234567890123456789012345678901")
 	_ = os.Setenv("ENCRYPTION_KEY", "abcdefghijklmnopqrstuvwxyz123456")
+	_ = InitEncryptionKey()
 	_ = LoadPrivacyKeys()
 }
 
@@ -28,10 +29,7 @@ func TestFilterPayload_FullMatch(t *testing.T) {
 			"chat": {"id": 123},
 			"forward_from": {"id": 789},
 			"forward_origin": {"sender_user": {"id": 321}},
-			"text": "secret message"
-		},
-		"channel_post": {
-			"text": "public message"
+			"text": "some message"
 		}
 	}`)
 
@@ -53,11 +51,6 @@ func TestFilterPayload_FullMatch(t *testing.T) {
 	// Ensure IDs are encrypted (should not be raw numbers)
 	if strings.Contains(redactedStr, "\"id\":123") || strings.Contains(redactedStr, "\"id\":321") {
 		t.Errorf("expected id to be encrypted, got: %s", redactedStr)
-	}
-
-	// Ensure text is encrypted
-	if strings.Contains(redactedStr, "secret message") || strings.Contains(redactedStr, "public message") {
-		t.Errorf("expected text to be encrypted, got: %s", redactedStr)
 	}
 }
 

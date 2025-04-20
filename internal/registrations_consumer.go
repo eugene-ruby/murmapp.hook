@@ -43,7 +43,13 @@ func StartRegistrationConsumer(ch *amqp.Channel) error {
 			webhookID := ComputeWebhookID(secretToken, os.Getenv("SECRET_SALT"))
 			webhookURL := fmt.Sprintf("%s/api/webhook/%s", os.Getenv("WEB_HOOK_HOST"), webhookID)
 
-			if err := registerTelegramWebhook(req.ApiKeyBot, webhookURL, secretToken); err != nil {
+			decrypt_api_key, err := DecryptWithKey(req.ApiKeyBot, SecretEncryptionKey)
+			if err != nil {
+				log.Printf("[hook] ❌ failed to decrypt api key: %v", err)
+				return
+			}
+			
+			if err := registerTelegramWebhook(decrypt_api_key, webhookURL, secretToken); err != nil {
 				log.Printf("[registrations] ❌ webhook registration failed: %v", err)
 				continue
 			}
