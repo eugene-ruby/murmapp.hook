@@ -1,20 +1,63 @@
 # murmapp.hook
 
-**murmapp.hook** is a minimal Go service designed to securely receive Telegram webhook events, verify their authenticity, and forward them as raw Protobuf messages to RabbitMQ for further processing.
+**murmapp.hook** is a minimal Go service designed to securely receive Telegram webhook events, verify their authenticity, redact and encrypt sensitive data, and forward them as raw Protobuf messages to RabbitMQ for further processing.
 
 ---
-
 ## 📌 Features
 
-- Secure webhook validation using a SHA1 hash of `token + SECRET_SALT`
-- Raw request body forwarding (no Telegram JSON parsing)
-- Protobuf serialization
-- RabbitMQ integration with automatic retry/reconnect
+- Secure webhook validation using SHA1(secret_token + SECRET_SALT)
+- AES-GCM encryption of `telegram_id` using `TELEGRAM_ID_ENCRYPTION_KEY`
+- AES-GCM encryption of `message.text`, `reply_to_message.text`, `channel_post.text` using `ENCRYPTION_KEY`
+- Redaction of fields like `username`, `first_name`, `last_name` to `"[redacted]"`
+- Declarative redaction paths via embedded `privacy_keys.yml`
+- Forwarding of redacted+encrypted payloads via Protobuf
+- RabbitMQ topic exchange integration (`murmapp`)
 - Clean HTTP API using `chi` router
-- Docker & Docker Compose support
-- GitHub Actions CI with health check
+- Docker-compatible and GitHub Actions ready
 
 ---
+
+## 🔐 Privacy & Security
+
+Before forwarding any Telegram payload:
+
+- The `hook` service checks the JSON payload against an embedded `privacy_keys.yml`
+- Matching fields like `message.from.id` are AES-GCM encrypted with `TELEGRAM_ID_ENCRYPTION_KEY`
+- Text values like `message.text`, `reply_to_message.text`, and `channel_post.text` are AES-GCM encrypted with a separate `ENCRYPTION_KEY`
+- Identity-related fields like `username`, `first_name`, and `last_name` are replaced with `"[redacted]"`
+- If no privacy keys match the payload — it is silently dropped
+
+> `privacy_keys.yml` is embedded into the Go binary at build time via `//go:embed`
+
+### 🔐 Example Output:
+
+```json
+{
+  "message": {
+    "chat": {
+      "first_name": "[redacted]",
+      "id": "PVu9j8yVhuevybRbuLn_7v1jA-3XRc6bmHZ4QPhk9Quilrl3fg==",
+      "last_name": "[redacted]",
+      "type": "private",
+      "username": "[redacted]"
+    },
+    "date": 1745149132,
+    "from": {
+      "first_name": "[redacted]",
+      "id": "UN2aJNsHyrrI9tV_2_X57oxY8TtY2Zn2gGOAwVfCxX-cHlHHUQ==",
+      "is_bot": false,
+      "language_code": "en",
+      "last_name": "[redacted]",
+      "username": "[redacted]"
+    },
+    "message_id": 182,
+    "text": "08S04RXzg_j3iCakX3apH6WjyZIA49SANqgqQYSkaQThaoh257FBA=="
+  },
+  "update_id": 733355217
+}
+```
+---
+
 
 ## ⚙️ API Specification
 
@@ -41,41 +84,40 @@ POST /api/webhook/{webhook_id}
 
 ## 📡 Message Queues
 
-The `murmapp` system uses **RabbitMQ topic exchanges** to route messages between services like `hook`, `core`, and `caster`.
+### 🟩 Exchange: `murmapp`
+
+Handles all incoming messages from Telegram via webhook.
+
+| routing_key    | From  | To     | Description                     |
+|----------------|-------|--------|---------------------------------|
+| `telegram.messages.in` | hook  | core   | Redacted Telegram webhook payload (Protobuf) |
+
+📸 Telegram message flow:  
+![messages in](docs/murmapp_messages_in.jpg)
 
 ---
 
-### 🟦 Exchange: `murmapp.registrations`
+The `murmapp` system uses **RabbitMQ topic exchanges** to route messages between services like `hook`, `core`, and `caster`.
+
+### 🟦 Exchange: `murmapp`
 
 Handles bot registration flows between `core` and `hook`.
 
 | routing_key  | From   | To     | Description                              |
 |--------------|--------|--------|------------------------------------------|
-| `registration` | core   | hook   | Command to register bot webhook          |
-| `registered`   | hook   | core   | Acknowledgment after successful setup    |
+| `webhook.registration` | core   | hook   | Command to register bot webhook          |
+| `webhook.registered`   | hook   | core   | Acknowledgment after successful setup    |
 
 📸 Registration flow:  
 ![registrations](docs/murmapp_registrations.png)
 
 ---
 
-### 🟩 Exchange: `murmapp.messages.in`
-
-Handles all incoming messages from Telegram via webhook.
-
-| routing_key    | From  | To     | Description                     |
-|----------------|-------|--------|---------------------------------|
-| `telegram.raw` | hook  | core   | Raw Telegram webhook payload    |
-
-📸 Telegram message flow:  
-![messages in](docs/murmapp_messages_in.png)
-
-
----
-
 ### Payload
 
-Raw Telegram webhook JSON is **not parsed**, only wrapped into a protobuf:
+Telegram webhook JSON is **not stored as-is**. It is:
+- redacted and encrypted (see `privacy_keys.yml`)
+- serialized into a Protobuf payload:
 
 ```proto
 message TelegramWebhookPayload {
@@ -89,7 +131,7 @@ message TelegramWebhookPayload {
 
 ### Registration Flow Payloads
 
-Bot registration messages exchanged via `murmapp.registrations` use the following Protobuf definitions:
+Bot registration messages exchanged via `murmapp` use the following Protobuf definitions:
 
 ```proto
 message RegisterWebhookRequest {
@@ -161,16 +203,17 @@ GET /healthz
 
 Returns `200 OK` if the service is running.
 
-
 ---
 
 ## 👨‍💻 For Developers
 
 ### 🧱 Project Structure
 
-- `Dockerfile` — minimal production image (no `protoc`)
-- `Dockerfile.dev` — development image with `protoc` and Go tooling
-- `.github/workflows/deploy.yml` — deployment workflow triggered on `v*` tags
+- `cmd/` — entrypoint: starts the webhook server
+- `internal/` — business logic (handlers, MQ, filtering)
+- `internal/config/privacy_keys.yml` — embedded YAML rules for redaction
+- `proto/` — Protobuf definitions
+- `.github/workflows/deploy.yml` — CI deployment flow
 
 ---
 
@@ -178,28 +221,20 @@ Returns `200 OK` if the service is running.
 
 To enable CI deployment, set the following secrets in **GitHub → Settings → Secrets and variables → Actions**:
 
-| Secret Name       | Description                                |
-|-------------------|--------------------------------------------|
-| `SSH_HOST`        | IP or hostname of your production server   |
-| `SSH_USER`        | SSH user used for deployment               |
-| `SSH_KEY`         | SSH private RSA key (single-line format)   |
-| `SECRET_SALT`     | Secret salt used for webhook verification  |
-| `APP_PORT`        | Default application port: 8080 (optional). |
-| `RABBITMQ_URL`    | RabbitMQ connection string (AMQP URL)      |
-| `WEB_HOOK_HOST`   | The domain with ssl to which Telegram will send webhooks        |
-
-
-Example:
-
-```env
-APP_PORT=8888 # default 8080
-WEB_HOOK_HOST=https://domain.com
-SECRET_SALT=supersecret
-RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
-```
+| Secret Name                  | Description                                       |
+|------------------------------|---------------------------------------------------|
+| `SSH_HOST`                   | IP or hostname of your production server         |
+| `SSH_USER`                   | SSH user used for deployment                     |
+| `SSH_KEY`                    | SSH private RSA key (single-line format)         |
+| `SECRET_SALT`                | Secret salt used for webhook verification        |
+| `TELEGRAM_ID_ENCRYPTION_KEY`| 32-byte key used for AES-GCM encryption of IDs   |
+| `ENCRYPTION_KEY`            | 32-byte key used for AES-GCM encryption of TEXT   |
+| `RABBITMQ_URL`              | RabbitMQ connection string (AMQP URL)            |
+| `WEB_HOOK_HOST`             | The domain where Telegram sends webhook events   |
+| `APP_PORT`                  | Port to bind the HTTP server                     |
+| `DEBUG`                     | Enable debug logs and payload tracing            |
 
 ---
-
 
 ### 🚀 Trigger Deployment
 
@@ -212,8 +247,9 @@ git push origin v1.0.0
 
 The server will automatically:
 
-- pull the latest image from Harbor
-- recreate the container with updated env vars and config
+- run `go build`
+- embed privacy config into the binary
+- restart the systemd service via SSH
 
 ---
 

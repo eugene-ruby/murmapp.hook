@@ -10,17 +10,18 @@ import (
 	"io"
 	"os"
 	"strings"
-	"log"
+
+	_ "embed"
 )
-import _ "embed"
 
 //go:embed config/privacy_keys.conf
 var EmbeddedPrivacyKeys string
 
 var (
-	privacyKeys  []string
-	secretSalt   string
-	encryptionKey []byte
+	privacyKeys       []string
+	secretSalt        string
+	encryptionKey     []byte // for telegram_id
+	textEncryptionKey []byte // for message text
 )
 
 // LoadPrivacyKeys reads keys from embedded file and initializes encryption config
@@ -32,7 +33,6 @@ func LoadPrivacyKeys() error {
 			privacyKeys = append(privacyKeys, line)
 		}
 	}
-	log.Printf("[init] loaded %d privacy keys", len(privacyKeys))
 
 	secretSalt = os.Getenv("SECRET_SALT")
 	if secretSalt == "" {
@@ -40,17 +40,21 @@ func LoadPrivacyKeys() error {
 	}
 
 	encKey := os.Getenv("TELEGRAM_ID_ENCRYPTION_KEY")
-	if encKey == "" {
-		return fmt.Errorf("TELEGRAM_ID_ENCRYPTION_KEY env var not set")
-	}
-	if len(encKey) != 32 {
+	if encKey == "" || len(encKey) != 32 {
 		return fmt.Errorf("TELEGRAM_ID_ENCRYPTION_KEY must be 32 bytes")
 	}
 	encryptionKey = []byte(encKey)
+
+	textKey := os.Getenv("ENCRYPTION_KEY")
+	if textKey == "" || len(textKey) != 32 {
+		return fmt.Errorf("ENCRYPTION_KEY must be 32 bytes")
+	}
+	textEncryptionKey = []byte(textKey)
+
 	return nil
 }
 
-// FilterPayload redacts sensitive data and returns a redacted version or a rejection
+// FilterPayload redacts sensitive data and encrypts IDs/text
 func FilterPayload(raw []byte) (redacted []byte, ok bool, reason string) {
 	var obj map[string]interface{}
 	if err := json.Unmarshal(raw, &obj); err != nil {
@@ -60,11 +64,15 @@ func FilterPayload(raw []byte) (redacted []byte, ok bool, reason string) {
 	matched := 0
 	for _, path := range privacyKeys {
 		parts := strings.Split(path, ".")
-		ok := applyPrivacyRule(obj, parts)
-		if ok {
+		if applyPrivacyRule(obj, parts) {
 			matched++
 		}
 	}
+
+	// encrypt all known text locations
+	encryptTextAtPath(obj, []string{"message", "text"})
+	encryptTextAtPath(obj, []string{"message", "reply_to_message", "text"})
+	encryptTextAtPath(obj, []string{"channel_post", "text"})
 
 	if matched == 0 {
 		return raw, false, "no privacy keys matched"
@@ -100,7 +108,7 @@ func applyPrivacyRule(root map[string]interface{}, path []string) bool {
 				default:
 					return false
 				}
-				encrypted, err := encryptTelegramID(str)
+				encrypted, err := encryptWithKey(str, encryptionKey)
 				if err != nil {
 					return false
 				}
@@ -115,8 +123,34 @@ func applyPrivacyRule(root map[string]interface{}, path []string) bool {
 	return false
 }
 
-func encryptTelegramID(plain string) (string, error) {
-	block, err := aes.NewCipher(encryptionKey)
+func encryptTextAtPath(root map[string]interface{}, path []string) {
+	var current interface{} = root
+	for i, key := range path {
+		m, ok := current.(map[string]interface{})
+		if !ok {
+			return
+		}
+		val, exists := m[key]
+		if !exists {
+			return
+		}
+		if i == len(path)-1 {
+			str, ok := val.(string)
+			if !ok || str == "" {
+				return
+			}
+			encrypted, err := encryptWithKey(str, textEncryptionKey)
+			if err == nil {
+				m[key] = encrypted
+			}
+			return
+		}
+		current = val
+	}
+}
+
+func encryptWithKey(plain string, key []byte) (string, error) {
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return "", err
 	}
