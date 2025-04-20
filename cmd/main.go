@@ -10,6 +10,12 @@ import (
 )
 
 func main() {
+	// Load privacy keys at startup
+	path := "config/privacy_keys.yml"
+	if err := internal.LoadPrivacyKeys(path); err != nil {
+		log.Fatalf("❌ failed to load privacy keys: %v", err)
+	}
+
 	r := chi.NewRouter()
 
 	mq, err := internal.InitMQ(os.Getenv("RABBITMQ_URL"))

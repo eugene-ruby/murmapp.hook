@@ -28,6 +28,7 @@ func (m *MockPublisher) Close() {}
 
 func TestHandleWebhook_ValidToken(t *testing.T) {
 	os.Setenv("SECRET_SALT", "test_salt")
+	privacyKeys = []string{"update_id"}
 
 	secretToken := "testtoken"
 	webhookID := ComputeWebhookID(secretToken, "test_salt")
@@ -36,7 +37,6 @@ func TestHandleWebhook_ValidToken(t *testing.T) {
 	req := httptest.NewRequest("POST", "/api/webhook/"+webhookID, bytes.NewReader(reqBody))
 	req.Header.Set("X-Telegram-Bot-Api-Secret-Token", secretToken)
 
-	// Подготовка chi context с параметром webhook_id
 	rctx := chi.NewRouteContext()
 	rctx.URLParams.Add("webhook_id", webhookID)
 	ctx := context.WithValue(req.Context(), chi.RouteCtxKey, rctx)
@@ -69,5 +69,30 @@ func TestHandleWebhook_InvalidToken(t *testing.T) {
 	HandleWebhook(w, req, mock)
 
 	assert.Equal(t, 403, w.Result().StatusCode)
+	assert.False(t, mock.Published)
+}
+
+func TestHandleWebhook_FilterDropsPayload(t *testing.T) {
+	os.Setenv("SECRET_SALT", "test_salt")
+	privacyKeys = []string{"must.exist"}
+
+	secretToken := "dropit"
+	webhookID := ComputeWebhookID(secretToken, "test_salt")
+
+	reqBody := []byte(`{"something_else": true}`)
+	req := httptest.NewRequest("POST", "/api/webhook/"+webhookID, bytes.NewReader(reqBody))
+	req.Header.Set("X-Telegram-Bot-Api-Secret-Token", secretToken)
+
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("webhook_id", webhookID)
+	ctx := context.WithValue(req.Context(), chi.RouteCtxKey, rctx)
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	mock := &MockPublisher{}
+
+	HandleWebhook(w, req, mock)
+
+	assert.Equal(t, 200, w.Result().StatusCode)
 	assert.False(t, mock.Published)
 }

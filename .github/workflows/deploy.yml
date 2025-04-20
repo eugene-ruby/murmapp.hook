@@ -40,7 +40,7 @@ jobs:
           host: ${{ env.SSH_HOST }}
           username: ${{ env.SSH_USER }}
           key: ${{ env.SSH_KEY }}
-          envs: SECRET_SALT,RABBITMQ_URL, WEB_HOOK_HOST, APP_PORT
+          envs: SECRET_SALT,RABBITMQ_URL, WEB_HOOK_HOST, APP_PORT, DEBUG
           script: |
             cd ~/murmapp/murmapp.hook
 
@@ -48,5 +48,6 @@ jobs:
             echo "RABBITMQ_URL=$RABBITMQ_URL" >> .env
             echo "WEB_HOOK_HOST=$WEB_HOOK_HOST" >> .env
             echo "APP_PORT=$APP_PORT" >> .env
+            echo "DEBUG=$DEBUG" >> .env
 
             sudo systemctl restart murmapp-hook.service
