@@ -47,7 +47,7 @@ jobs:
             cd ~/murmapp/murmapp.hook
 
             echo "SECRET_SALT=$SECRET_SALT" > .env
-            echo "TELEGRAM_ID_ENCRYPTION_KEY=$TELEGRAM_ID_ENCRYPTION_KEY" > .env
+            echo "TELEGRAM_ID_ENCRYPTION_KEY=$TELEGRAM_ID_ENCRYPTION_KEY" >> .env
             echo "RABBITMQ_URL=$RABBITMQ_URL" >> .env
             echo "WEB_HOOK_HOST=$WEB_HOOK_HOST" >> .env
             echo "APP_PORT=$APP_PORT" >> .env
