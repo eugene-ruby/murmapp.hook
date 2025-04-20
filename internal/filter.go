@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"log"
 )
 import _ "embed"
 
@@ -31,6 +32,7 @@ func LoadPrivacyKeys() error {
 			privacyKeys = append(privacyKeys, line)
 		}
 	}
+	log.Printf("[init] loaded %d privacy keys", len(privacyKeys))
 
 	secretSalt = os.Getenv("SECRET_SALT")
 	if secretSalt == "" {
@@ -58,7 +60,9 @@ func FilterPayload(raw []byte) (redacted []byte, ok bool, reason string) {
 	matched := 0
 	for _, path := range privacyKeys {
 		parts := strings.Split(path, ".")
-		if applyPrivacyRule(obj, parts) {
+		ok := applyPrivacyRule(obj, parts)
+		log.Printf("[debug] path: %s => matched: %v", path, ok)
+		if ok {
 			matched++
 		}
 	}
@@ -84,6 +88,7 @@ func applyPrivacyRule(root map[string]interface{}, path []string) bool {
 		}
 		val, exists := m[key]
 		if !exists {
+			log.Printf("[debug] path missing at: %s", strings.Join(path[:i+1], "."))
 			return false
 		}
 		if i == len(path)-1 {
