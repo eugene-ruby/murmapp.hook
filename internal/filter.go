@@ -14,7 +14,7 @@ import (
 )
 import _ "embed"
 
-//go:embed config/privacy_keys.yml
+//go:embed config/privacy_keys.conf
 var EmbeddedPrivacyKeys string
 
 var (
@@ -61,7 +61,6 @@ func FilterPayload(raw []byte) (redacted []byte, ok bool, reason string) {
 	for _, path := range privacyKeys {
 		parts := strings.Split(path, ".")
 		ok := applyPrivacyRule(obj, parts)
-		log.Printf("[debug] path: %s => matched: %v", path, ok)
 		if ok {
 			matched++
 		}
@@ -88,7 +87,6 @@ func applyPrivacyRule(root map[string]interface{}, path []string) bool {
 		}
 		val, exists := m[key]
 		if !exists {
-			log.Printf("[debug] path missing at: %s", strings.Join(path[:i+1], "."))
 			return false
 		}
 		if i == len(path)-1 {
