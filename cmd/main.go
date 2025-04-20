@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/go-chi/chi/v5"
 	"murmapp.hook/internal"
@@ -11,11 +12,11 @@ import (
 
 func main() {
 	// Load privacy keys at startup
-	path := "config/privacy_keys.yml"
+
+	path, _ := filepath.Abs("config/privacy_keys.yml")
 	if err := internal.LoadPrivacyKeys(path); err != nil {
 		log.Fatalf("❌ failed to load privacy keys: %v", err)
 	}
-
 	r := chi.NewRouter()
 
 	mq, err := internal.InitMQ(os.Getenv("RABBITMQ_URL"))
@@ -23,7 +24,7 @@ func main() {
 		log.Fatalf("RabbitMQ error: %v", err)
 	}
 	defer mq.Close()
-	
+
 	if err := internal.InitExchanges(mq.GetChannel()); err != nil {
 		log.Fatalf("Exchange init failed: %v", err)
 	}
