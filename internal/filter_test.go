@@ -2,12 +2,12 @@ package internal
 
 import (
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
 
-const testPrivacyKeys = `
+func init() {
+	EmbeddedPrivacyKeys = `
 message.from.id
 message.from.first_name
 message.from.username
@@ -15,30 +15,13 @@ message.chat.id
 message.forward_from.id
 message.forward_origin.sender_user.id
 `
-
-func TestFilterPayload_FullMatch(t *testing.T) {
 	os.Setenv("SECRET_SALT", "test_salt")
 	os.Setenv("TELEGRAM_ID_ENCRYPTION_KEY", "01234567890123456789012345678901")
-	privacyKeys = nil // reset
+	_ = LoadPrivacyKeys()
+}
 
-	tempFile, err := os.CreateTemp("", "privacy_keys_*.yml")
-	if err != nil {
-		t.Fatalf("failed to create temp file: %v", err)
-	}
-	tempFile.WriteString(testPrivacyKeys)
-	tempFile.Close()
-	defer os.Remove(tempFile.Name())
 
-	// Use absolute path for test compatibility
-	absPath, err := filepath.Abs(tempFile.Name())
-	if err != nil {
-		t.Fatalf("failed to get absolute path: %v", err)
-	}
-
-	if err := LoadPrivacyKeys(absPath); err != nil {
-	t.Fatalf("failed to load keys: %v", err)
-	}
-
+func TestFilterPayload_FullMatch(t *testing.T) {
 	raw := []byte(`{
 		"message": {
 			"from": {"id": 123, "first_name": "Eugene", "username": "anonymous"},

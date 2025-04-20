@@ -1,6 +1,3 @@
-// filter.go
-// Handles privacy filtering of incoming Telegram payloads in murmapp.hook
-
 package internal
 
 import (
@@ -14,6 +11,10 @@ import (
 	"os"
 	"strings"
 )
+import _ "embed"
+
+//go:embed config/privacy_keys.yml
+var EmbeddedPrivacyKeys string
 
 var (
 	privacyKeys  []string
@@ -21,13 +22,9 @@ var (
 	encryptionKey []byte
 )
 
-// LoadPrivacyKeys loads keys from an absolute path and reads encryption/env config
-func LoadPrivacyKeys(absPath string) error {
-	data, err := os.ReadFile(absPath)
-	if err != nil {
-		return fmt.Errorf("failed to load privacy keys: %w", err)
-	}
-	lines := strings.Split(string(data), "\n")
+// LoadPrivacyKeys reads keys from embedded file and initializes encryption config
+func LoadPrivacyKeys() error {
+	lines := strings.Split(EmbeddedPrivacyKeys, "\n")
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line != "" && !strings.HasPrefix(line, "#") {

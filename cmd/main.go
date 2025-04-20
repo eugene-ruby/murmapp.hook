@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"github.com/go-chi/chi/v5"
 	"murmapp.hook/internal"
@@ -13,8 +12,7 @@ import (
 func main() {
 	// Load privacy keys at startup
 
-	path, _ := filepath.Abs("config/privacy_keys.yml")
-	if err := internal.LoadPrivacyKeys(path); err != nil {
+	if err := internal.LoadPrivacyKeys(); err != nil {
 		log.Fatalf("❌ failed to load privacy keys: %v", err)
 	}
 	r := chi.NewRouter()
