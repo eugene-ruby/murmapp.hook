@@ -1,0 +1,9 @@
+MASTER_KEY=test-hook-master-key
+APP_PORT=3998
+WEB_HOOK_PATH=/api/webhook
+RABBITMQ_URL=amqp://guest:guest@localhost:5672
+
+PAYLOAD_ENCRYPTION_KEY=********************************
+SECRET_SALT=********************************
+CASTER_PRIVATE_KEY_RAW_BASE64=****************************************************************
+CASTER_PUBLIC_KEY_RAW_BASE64=************************************************************************************************
