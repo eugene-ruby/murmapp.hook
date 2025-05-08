@@ -1,16 +1,23 @@
-FROM golang:1.22-alpine AS builder
+FROM golang:1.24.1-alpine
+
+# Install required packages
+RUN apk add --no-cache git protobuf make
+
+# Install protoc-gen-go
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+
+ENV PATH="/go/bin:$PATH"
 
 WORKDIR /app
+
+# Copy source code
 COPY . .
 
-RUN go mod download
-RUN go build -o app ./cmd/main.go
+# Generate protobuf files
+RUN protoc --go_out=. --go_opt=paths=source_relative proto/*.proto
 
-# Compile the application binary
-FROM alpine:latest
+# Build via Makefile
+RUN make build
 
-WORKDIR /app
-COPY --from=builder /app/app .
-
-EXPOSE 8080
-CMD ["./app"]
+EXPOSE 3998
+CMD make run
