@@ -8,25 +8,31 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     env:
       SSH_USER: ${{ secrets.SSH_USER }}
       SSH_HOST: ${{ secrets.SSH_HOST }}
       SSH_KEY: ${{ secrets.SSH_KEY }}
-      SECRET_SALT: ${{ secrets.SECRET_SALT }}
-      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
-      TELEGRAM_ID_ENCRYPTION_KEY: ${{ secrets.TELEGRAM_ID_ENCRYPTION_KEY }}
-      RABBITMQ_URL: ${{ secrets.RABBITMQ_URL }}
-      WEB_HOOK_HOST: ${{ secrets.WEB_HOOK_HOST }}
+      WEB_HOOK_PATH: ${{ secrets.WEB_HOOK_PATH }}
       APP_PORT: ${{ secrets.APP_PORT }}
-      DEBUG: ${{ secrets.DEBUG }}
+      RABBITMQ_URL: ${{ secrets.RABBITMQ_URL }}
+      SECRET_SALT: ${{ secrets.SECRET_SALT }}
+      PAYLOAD_ENCRYPTION_KEY: ${{ secrets.PAYLOAD_ENCRYPTION_KEY }}
+      CASTER_PUBLIC_KEY_RAW_BASE64: ${{ secrets.CASTER_PUBLIC_KEY_RAW_BASE64 }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24.1'
+          cache: true
       - name: Build binary
-        run: go build -o app ./cmd/main.go
+        run: |
+          go build -mod=mod -ldflags "-X=murmapp.hook/internal/config.MasterEncryptionKey=${{ secrets.MASTER_SECRET_KEY }}" \
+          -o app ./cmd/main.go
 
       - name: Copy files to server
         uses: appleboy/scp-action@v0.1.4
@@ -43,18 +49,17 @@ jobs:
           host: ${{ env.SSH_HOST }}
           username: ${{ env.SSH_USER }}
           key: ${{ env.SSH_KEY }}
-          envs: SECRET_SALT,RABBITMQ_URL,WEB_HOOK_HOST,APP_PORT,DEBUG,TELEGRAM_ID_ENCRYPTION_KEY,ENCRYPTION_KEY
+          envs: APP_PORT,RABBITMQ_URL,WEB_HOOK_PATH,SECRET_SALT,PAYLOAD_ENCRYPTION_KEY,CASTER_PUBLIC_KEY_RAW_BASE64
           script: |
             cd ~/murmapp/murmapp.hook
 
             cat <<EOF > .env
             SECRET_SALT=$SECRET_SALT
-            ENCRYPTION_KEY=$ENCRYPTION_KEY
-            TELEGRAM_ID_ENCRYPTION_KEY=$TELEGRAM_ID_ENCRYPTION_KEY
+            PAYLOAD_ENCRYPTION_KEY=$PAYLOAD_ENCRYPTION_KEY
+            CASTER_PUBLIC_KEY_RAW_BASE64=$CASTER_PUBLIC_KEY_RAW_BASE64
             RABBITMQ_URL=$RABBITMQ_URL
-            WEB_HOOK_HOST=$WEB_HOOK_HOST
+            WEB_HOOK_PATH=$WEB_HOOK_PATH
             APP_PORT=$APP_PORT
-            DEBUG=$DEBUG
             EOF
 
             sudo systemctl restart murmapp-hook.service

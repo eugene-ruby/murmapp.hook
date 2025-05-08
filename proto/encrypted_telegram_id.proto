@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package hook;
+
+option go_package = "murmapp.hook/proto;hookpb";
+
+message EncryptedTelegramID {
+  string telegram_xid = 1;
+  bytes encrypted_id = 2;
+}
