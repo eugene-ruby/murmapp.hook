@@ -21,7 +21,7 @@ It listens for incoming Telegram webhook requests, verifies the signature, redac
 
 * Token-based signature validation per webhook
 * JSON redaction engine with path-based rules (`privacy_keys.conf`)
-* Automatic XID generation for `telegram_id` using salted SHA1
+* Automatic XID generation for `telegram_id` using salted SHA256
 * RSA encryption of original Telegram IDs
 * Encrypted payload forwarding via RabbitMQ
 * Clean separation of `config`, `run`, `webhook`, `server` logic
@@ -95,7 +95,7 @@ make build
               ▼
      ┌────────────────────────────────────┐
      │ For each ID:                       │
-     │   - SHA1(id + salt) → xid          │
+     │   - SHA256(id + salt) → xid        │
      │   - RSA encrypt original ID        │
      │   - Send to `telegram.encrypted.id`│
      └────────────────────────────────────┘
@@ -106,7 +106,7 @@ make build
 2. JSON is scanned with rules like `message.from.id`, `message.chat.id`
 3. Any field named `id` is:
 
-   * converted to `telegram_xid` via `SHA1(id + salt)`
+   * converted to `telegram_xid` via `SHA256(id + salt)`
    * collected as `{telegram_id, telegram_xid}`
 4. Payload is encrypted with AES-256 and sent to `telegram.messages.in`
 5. Each `telegram_id` is encrypted with RSA and sent to `telegram.encrypted.id`

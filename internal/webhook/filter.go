@@ -1,7 +1,7 @@
 package webhook
 
 import (
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -119,7 +119,7 @@ func applyPrivacyRule(root map[string]interface{}, path []string, secretSalt str
 }
 
 func TelegramXID(telegram_id, secretSalt string) string {
-	h := sha1.New()
+	h := sha256.New()
 	h.Write([]byte(telegram_id + secretSalt))
 	return hex.EncodeToString(h.Sum(nil))
 }

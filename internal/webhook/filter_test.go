@@ -46,14 +46,17 @@ func TestFilterPayload_FullMatch(t *testing.T) {
 			strings.Count(redactedStr, "[redacted]"), redactedStr)
 	}
 
-	if !strings.Contains(redactedStr, "06c8ff76e137028539e8d29fd966c301d62ab7e9") {
-		t.Errorf("expected sha1 123 placeholder, got: %s", redactedStr)
+	if !strings.Contains(redactedStr, "3155b66fa12f59c373773dd79658f85d93baa739fb1025dd67641ce1d4042a21") {
+		t.Errorf("expected sha256 123 placeholder, got: %s", redactedStr)
 	}
-	if !strings.Contains(redactedStr, "7a461bd11eb9a8b78eef182ec544d99b51203535") {
-		t.Errorf("expected sha1 321 placeholder, got: %s", redactedStr)
+	if !strings.Contains(redactedStr, "746038628e2b64e08546fdddef7df2631008986139b24975869b839e09322204") {
+		t.Errorf("expected sha256 321 placeholder, got: %s", redactedStr)
+	}
+	if !strings.Contains(redactedStr, "5d2218514d5e1e0e423403493b355101913751bf5e89c56ed2763171b957f51d") {
+		t.Errorf("expected sha256 789 placeholder, got: %s", redactedStr)
 	}
 
-	if strings.Contains(redactedStr, "\"id\":123") || strings.Contains(redactedStr, "\"id\":321") {
+	if strings.Contains(redactedStr, "\"id\":123") || strings.Contains(redactedStr, "\"id\":321") || strings.Contains(redactedStr, "\"id\":789") {
 		t.Errorf("expected id to be encrypted, got: %s", redactedStr)
 	}
 }
