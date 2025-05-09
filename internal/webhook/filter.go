@@ -109,6 +109,9 @@ func applyPrivacyRule(root map[string]interface{}, path []string, secretSalt str
 				telegramID.OpenTelegramID = open_id
 				m[key] = telegram_xid
 			} else {
+				if isChannel(m) && (key == "title" || key == "username") {
+					return telegramID, false
+				}
 				m[key] = "[redacted]"
 			}
 			return telegramID, true
@@ -116,6 +119,14 @@ func applyPrivacyRule(root map[string]interface{}, path []string, secretSalt str
 		current = val
 	}
 	return telegramID, false
+}
+
+func isChannel(m map[string]interface{}) bool {
+	t, ok := m["type"]
+	if !ok {
+		return false
+	}
+	return t == "channel"
 }
 
 func TelegramXID(telegram_id, secretSalt string) string {

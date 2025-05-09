@@ -13,7 +13,14 @@ message.from.first_name
 message.from.username
 message.chat.id
 message.forward_from.id
+message.forward_from_chat.id
+message.forward_from_chat.title
+message.forward_from_chat.username
 message.forward_origin.sender_user.id
+message.forward_origin.sender_user.username
+message.forward_origin.chat.id
+message.forward_origin.chat.title
+message.forward_origin.chat.username
 `
 	_ = LoadPrivacyKeys()
 	secretSalt = "testSecretSalt"
@@ -103,5 +110,47 @@ func TestFilterPayload_TextEncryptionOnly(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "no privacy keys matched") {
 		t.Errorf("expected reason to mention no privacy match, got: %s", err)
+	}
+}
+
+func TestFilterPayload_ChannelFieldsUnredacted(t *testing.T) {
+	raw := []byte(`{
+		"message": {
+			"forward_from_chat": {
+				"id": -1001234567890,
+				"title": "MyChannel",
+				"username": "my_channel",
+				"type": "channel"
+			},
+			"forward_origin": {
+				"type": "channel",
+				"chat": {
+					"id": -1001234567899,
+					"title": "MyChannel",
+					"username": "my_channel",
+					"type": "channel"
+				}
+			}
+		}
+	}`)
+
+	result, err := FilterPayload(raw, secretSalt)
+	if err != nil {
+		t.Errorf("expected payload to pass filter, but got error: %s", err)
+	}
+
+	redactedStr := string(result.RedactedJSON)
+
+	if strings.Contains(redactedStr, "-1001234567899") || strings.Contains(redactedStr, "-1001234567890") {
+		t.Errorf("expected redacted fields, got: %s", redactedStr)
+	}
+	if !strings.Contains(redactedStr, "a6891bd87bf997a036e3200b181bda9f9e70350e709065c2041194cca30c7520") {
+		t.Errorf("expected sha256 -1001234567890 placeholder, got: %s", redactedStr)
+	}
+	if !strings.Contains(redactedStr, "ff5614c16de3d759cd09c19d6c6f51e306e3656b8c6b02ef6157dc84705aa730") {
+		t.Errorf("expected sha256 -1001234567899 placeholder, got: %s", redactedStr)
+	}
+	if !strings.Contains(redactedStr, "MyChannel") || !strings.Contains(redactedStr, "my_channel") {
+		t.Errorf("expected channel title and username to be preserved, got: %s", redactedStr)
 	}
 }
