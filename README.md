@@ -12,10 +12,25 @@
 [![Build Status](https://github.com/eugene-ruby/murmapp.hook/actions/workflows/ci.yml/badge.svg)](https://github.com/eugene-ruby/murmapp.hook/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**murmapp.hook** is a secure and minimal webhook receiver for the Murmapp system.
-It listens for incoming Telegram webhook requests, verifies the signature, redacts and encrypts sensitive data, and pushes encrypted payloads and telegram IDs into RabbitMQ for downstream processing.
+---
+
+## 🔗 Part of the Murmapp Ecosystem
+
+Murmapp is composed of several specialized microservices:
+
+| Project           | Description                                                                 |
+|-------------------|-----------------------------------------------------------------------------|
+| [`murmapp.hook`](https://github.com/eugene-ruby/murmapp.hook)     | Secure Telegram webhook receiver with ID redaction and encryption |
+| [`murmapp.caster`](https://github.com/eugene-ruby/murmapp.caster) | Trusted dispatcher for decrypted message delivery to Telegram API |
+| [`murmapp.core`](https://github.com/eugene-ruby/murmapp.core)     | Domain logic and message orchestration layer                       |
+| [`murmapp.docs`](https://github.com/eugene-ruby/murmapp.docs)     | You are here — full technical documentation and architecture        |
+
+> All components are open-source and licensed under MIT.
 
 ---
+
+**murmapp.hook** is a secure and minimal webhook receiver for the Murmapp system.
+It listens for incoming Telegram webhook requests, verifies the signature, redacts and encrypts sensitive data, and pushes encrypted payloads and telegram IDs into RabbitMQ for downstream processing.
 
 ## ✨ Features
 
